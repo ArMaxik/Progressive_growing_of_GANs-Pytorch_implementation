@@ -1,0 +1,5 @@
+*.gif
+.ipynb_checkpoints
+*pycache*
+out
+.vscode
