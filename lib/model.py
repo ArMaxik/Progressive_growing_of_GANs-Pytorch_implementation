@@ -61,7 +61,7 @@ class Progressive_GAN(nn.Module):
         # self.criterion = nn.MSELoss()
 
     def train_one_epoch(self):
-        for i, data in enumerate(self.dataloader, 0):
+        for i, (data, _) in enumerate(self.dataloader, 0):
             self.data_device = data.to(self.device)
             if self.noise:
                 self.data_device = noisy(self.data_device, self.device)
@@ -76,6 +76,14 @@ class Progressive_GAN(nn.Module):
         self.make_stats()
         self.make_chart()
         self.save_progress_image()
+
+    def make_stats(self):
+        # with torch.no_grad():
+            # fake = self.gen(self.fixed_noise).detach().cpu()
+        # self.img_list.append(vutils.make_grid(fake, padding=2, normalize=True, nrow=6))
+
+        self.G_losses.append(self.g_loss.item())
+        self.D_losses.append(self.d_loss.item())
 
     def train(self):
         self.save_folder = os.path.join('./out', self.exp_name + '/')
@@ -106,7 +114,7 @@ class Progressive_GAN(nn.Module):
             self.op_gen = torch.optim.Adam(self.gen.parameters(), lr=self.lr_g, betas=(self.b1, self.b2))
             self.op_dis = torch.optim.Adam(self.dis.parameters(), lr=self.lr_d, betas=(self.b1, self.b2)) 
 
-            self.epochs = int(self.epochs*1.1)
+            self.epochs = int(self.epochs*1.15)
             alpha_inc = 1.0 / (self.epochs-1)
 
             self.cur_isize *= 2
@@ -123,7 +131,7 @@ class Progressive_GAN(nn.Module):
             self.gen.end_transition()
             self.dis.end_transition()
 
-            self.epochs = int(self.epochs*1.5)
+            self.epochs = int(self.epochs*1.15)
             self.make_chart()
         print("train {}x{}".format(self.cur_isize, self.cur_isize))
         self.pbar.reset(total=self.epochs*len(self.dataloader))  # initialise with new `total`

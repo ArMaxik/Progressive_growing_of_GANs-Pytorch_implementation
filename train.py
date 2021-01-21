@@ -5,15 +5,15 @@ import os
 
 class options:
     def __init__(self):
-        self.exp_name = "Progressive_01"
+        self.exp_name = "Progressive_GAN_01"
         self.batch = 64
-        self.latent = 128
+        self.latent = 512
         self.isize = 128
-        self.device = torch.device("cuda:1" if (torch.cuda.is_available()) else "cpu")
         self.device_ids = [1, 2]
+        self.device = torch.device(f"cuda:{self.device_ids[0]}" if (torch.cuda.is_available()) else "cpu")
         # self.data_path = "/home/v-eliseev/Datasets/cats/"
         # self.data_path = "/mnt/p/datasets/cats/"
-        self.data_path = "/raid/veliseev/datasets/cats/"
+        self.data_path = "/raid/veliseev/datasets/cats/imgs/"
 
         self.epochs = 30
         self.lr_d = 0.0001
