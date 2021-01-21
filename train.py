@@ -9,7 +9,7 @@ class options:
         self.batch = 64
         self.latent = 512
         self.isize = 128
-        self.device_ids = [1, 2]
+        self.device_ids = [2, 3]
         self.device = torch.device(f"cuda:{self.device_ids[0]}" if (torch.cuda.is_available()) else "cpu")
         # self.data_path = "/home/v-eliseev/Datasets/cats/"
         # self.data_path = "/mnt/p/datasets/cats/"

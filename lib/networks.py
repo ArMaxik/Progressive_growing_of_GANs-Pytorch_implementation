@@ -26,7 +26,31 @@ class MinibatchStd(nn.Module):
 class EqualConv2d(nn.Conv2d):
     def __init__(self, *args, **kwargs):
         super(EqualConv2d, self).__init__(*args, **kwargs)
-        self.c = (2/(self.kernel_size[0]*self.kernel_size[1]))**0.5
+        self.c = (2 / (self.kernel_size[0] * self.kernel_size[1])) ** 0.5
+        # nn.init.normal_(self.weight.data, 0.0, 1.0)
+        # nn.init.constant_(self.bias.data, 0)
+
+    def forward(self, x):
+        self.weight.data = self.weight.data / self.c
+        return super().forward(x)
+
+class EqualConvTranspose2d(nn.ConvTranspose2d):
+    def __init__(self, *args, **kwargs):
+        super(EqualConvTranspose2d, self).__init__(*args, **kwargs)
+        self.c = (2 / (self.kernel_size[0] * self.kernel_size[1])) ** 0.5
+        # nn.init.normal_(self.weight.data, 0.0, 1.0)
+        # nn.init.constant_(self.bias.data, 0)
+
+    def forward(self, x):
+        self.weight.data = self.weight.data / self.c
+        return super().forward(x)
+
+class EqualLinear(nn.Linear):
+    def __init__(self, *args, **kwargs):
+        super(EqualLinear, self).__init__(*args, **kwargs)
+        self.c = (2 / self.in_features) ** 0.5
+        # nn.init.normal_(self.weight.data, 0.0, 1.0)
+        # nn.init.constant_(self.bias.data, 0)
 
     def forward(self, x):
         self.weight.data = self.weight.data / self.c
@@ -34,57 +58,37 @@ class EqualConv2d(nn.Conv2d):
 
 
 class Progressive_Generator(nn.Module):
-    def __init__(self, LATENT, device="cpu", device_ids=[]):
+    def __init__(self, LATENT):
         super(Progressive_Generator, self).__init__()
-        self.to(device)
-        self.device = device
-        self.device_ids = device_ids
         
         self.z = LATENT
         
         self.nc = 512
         self.layers = nn.ModuleList([
-            nn.ConvTranspose2d(self.z, self.nc, kernel_size=4, stride=1, padding=0, bias=True).to(self.device),
-            PixelNorm().to(self.device),
-            nn.LeakyReLU(0.2).to(self.device),
-            EqualConv2d(self.nc, self.nc, 3, stride=1, padding=1, bias=True).to(self.device),
-            PixelNorm().to(self.device),
-            nn.LeakyReLU(0.2).to(self.device),
+            EqualConvTranspose2d(self.z, self.nc, kernel_size=4, stride=1, padding=0, bias=True),
+            PixelNorm(),
+            nn.LeakyReLU(0.2),
+            EqualConv2d(self.nc, self.nc, 3, stride=1, padding=1, bias=True),
+            PixelNorm(),
+            nn.LeakyReLU(0.2),
         ])
-        self.toRGB = EqualConv2d(self.nc, 3, (1, 1), bias=True).to(self.device)
+        self.toRGB = EqualConv2d(self.nc, 3, (1, 1), bias=True)
 
         # self.block_size = 4
 
-        for l in self.layers:
-            weights_init(l)
-        weights_init(self.toRGB)
-        
-        if len(self.device_ids) > 1 and not (self.device == "cpu"):
-            self.layers = nn.ModuleList([nn.DataParallel(l, device_ids=self.device_ids) for l in self.layers])
-            self.toRGB = nn.DataParallel(self.toRGB, device_ids=self.device_ids)
-
-        
     def add_block(self):
         block = nn.ModuleList([
-            nn.Upsample(scale_factor=2.0).to(self.device),
-            EqualConv2d(self.nc, self.nc // 2, kernel_size=3, stride=1, padding=1, bias=True).to(self.device),
-            PixelNorm().to(self.device),
-            nn.LeakyReLU(0.2).to(self.device),
-            EqualConv2d(self.nc // 2, self.nc // 2, (3, 3), stride=1, padding=1, bias=True).to(self.device),
-            PixelNorm().to(self.device),
-            nn.LeakyReLU(0.2).to(self.device),
+            nn.Upsample(scale_factor=2.0),
+            EqualConv2d(self.nc, self.nc // 2, kernel_size=3, stride=1, padding=1, bias=True),
+            PixelNorm(),
+            nn.LeakyReLU(0.2),
+            EqualConv2d(self.nc // 2, self.nc // 2, (3, 3), stride=1, padding=1, bias=True),
+            PixelNorm(),
+            nn.LeakyReLU(0.2),
         ])
         self.block_size = len(block)
 
-        self.toRGB_new = EqualConv2d(self.nc // 2, 3, (1, 1), bias=True).to(self.device)
-
-        for l in block:
-            weights_init(l)
-        weights_init(self.toRGB_new)
-
-        if len(self.device_ids) > 1 and not (self.device == "cpu"):
-            block = nn.ModuleList([nn.DataParallel(l, device_ids=self.device_ids) for l in block])
-            self.toRGB_new = nn.DataParallel(self.toRGB_new, device_ids=self.device_ids)
+        self.toRGB_new = EqualConv2d(self.nc // 2, 3, (1, 1), bias=True)
 
         self.layers.extend(block)
         self.nc //= 2
@@ -127,64 +131,46 @@ class Progressive_Generator(nn.Module):
         self.toRGB = self.toRGB_new
 
 class Progressive_Discriminator(nn.Module):
-    def __init__(self, device="cpu", device_ids=[]):
+    def __init__(self):
         super(Progressive_Discriminator, self).__init__()
-
-        self.device = device
-        self.device_ids = device_ids
         
         self.nc = 512
         self.layers = nn.ModuleList([
-            MinibatchStd().to(self.device),
-            EqualConv2d(self.nc+1, self.nc, kernel_size=3, stride=1, padding=1, bias=True).to(self.device),
-            nn.LeakyReLU(0.2).to(self.device),
-            EqualConv2d(self.nc, self.nc, kernel_size=4, stride=1, padding=0, bias=True).to(self.device),
-            nn.LeakyReLU(0.2).to(self.device),
+            MinibatchStd(),
+            EqualConv2d(self.nc+1, self.nc, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.LeakyReLU(0.2),
+            EqualConv2d(self.nc, self.nc, kernel_size=4, stride=1, padding=0, bias=True),
+            nn.LeakyReLU(0.2),
         ])
-        self.fromRGB = EqualConv2d(3, self.nc, (1, 1), bias=True).to(self.device)
-        self.lrelu_fromRGB = nn.LeakyReLU(0.2).to(self.device)
+        self.fromRGB = EqualConv2d(3, self.nc, (1, 1), bias=True)
+        self.lrelu_fromRGB = nn.LeakyReLU(0.2)
 
         # self.block_size = 3
 
-        self.linear = nn.Linear(in_features = self.nc, out_features = 1).to(self.device)
-
-        for l in self.layers:
-            weights_init(l)
-        weights_init(self.fromRGB)
-        weights_init(self.linear)
-
-        if len(self.device_ids) > 1 and not (self.device == "cpu"):
-            self.layers = nn.ModuleList([nn.DataParallel(l, device_ids=self.device_ids) for l in self.layers])
-            self.fromRGB = nn.DataParallel(self.fromRGB, device_ids=self.device_ids)
-            self.lrelu_fromRGB = nn.DataParallel(self.lrelu_fromRGB, device_ids=self.device_ids)
-            self.linear = nn.DataParallel(self.linear, device_ids=self.device_ids)
-
+        self.linear = EqualLinear(in_features = self.nc, out_features = 1)
 
     def add_block(self):
         block = nn.ModuleList([
-            EqualConv2d(self.nc//2, self.nc//2, kernel_size=3, stride=1, padding=1, bias=True).to(self.device),
-            nn.LeakyReLU(0.2).to(self.device),
-            EqualConv2d(self.nc//2, self.nc, kernel_size=3, stride=1, padding=1, bias=True).to(self.device),
-            nn.LeakyReLU(0.2).to(self.device),
-            nn.AvgPool2d(2).to(self.device),
+            EqualConv2d(self.nc//2, self.nc//2, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.LeakyReLU(0.2),
+            EqualConv2d(self.nc//2, self.nc, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.LeakyReLU(0.2),
+            nn.AvgPool2d(2),
         ])
         self.block_size = len(block)
-        self.fromRGB_new = EqualConv2d(3, self.nc // 2, (1, 1), bias=True).to(self.device)
-        
-        for l in block:
-            weights_init(l)
-        weights_init(self.fromRGB_new)
-
-        if len(self.device_ids) > 1 and not (self.device == "cpu"):
-            block = nn.ModuleList([nn.DataParallel(l, device_ids=self.device_ids) for l in block])
-            self.fromRGB_new = nn.DataParallel(self.fromRGB_new, device_ids=self.device_ids)
-
+        self.fromRGB_new = EqualConv2d(3, self.nc // 2, (1, 1), bias=True)
         
         self.layers = block.extend(self.layers)
         self.nc //= 2
 
 
-    def forward(self, x):
+    def forward(self, x, alpha = -1):
+        if not alpha == -1:
+            return self.transition_forward(x, alpha)
+        
+        return self.normal_forward(x) 
+
+    def normal_forward(self, x):
         x = self.fromRGB(x)
         x = self.lrelu_fromRGB(x)
 

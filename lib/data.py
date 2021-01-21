@@ -17,7 +17,7 @@ def makeCatsDataset(batch=16, isize=64, path=DATA_DIR):
     cats_dataset = ImageFolder(
         root = path,
         transform = transforms.Compose([
-            # transforms.Pad(30, padding_mode='edge'),
+            transforms.Pad(isize//4, padding_mode='reflect'),
             transforms.RandomAffine(
                 degrees = 10
             ),
