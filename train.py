@@ -1,11 +1,14 @@
 from lib.model import Progressive_GAN
+from lib.misc import make_video
 
+from datetime import timedelta
 import torch
+import time
 import os
 
 class options:
     def __init__(self):
-        self.exp_name = "Progressive_GAN_01"
+        self.exp_name = "Progressive_GAN_02"
         self.batch = 64
         self.latent = 512
         self.isize = 128
@@ -31,10 +34,19 @@ class options:
 opt = options()
 if not os.path.isdir(f"./out/{opt.exp_name}"):
     os.makedirs(f"./out/{opt.exp_name}")
+if not os.path.isdir(f"./out/{opt.exp_name}/progress"):
+    os.makedirs(f"./out/{opt.exp_name}/progress")
 with open(f"./out/{opt.exp_name}/opt.txt", 'w') as f:
     for (k, v) in opt.__dict__.items():
         f.write("{:24s}{}\n".format(k, v))
 
+start_time = time.time()
+
 gan = Progressive_GAN(opt)
 gan.train()
 
+print("Making video")
+make_video(opt)
+
+end_time = time.time()
+print(f"Total {timedelta(seconds=end_time - start_time)}")

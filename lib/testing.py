@@ -25,31 +25,19 @@ def imshow(img, name=None):
         fig.show()
     plt.close()
 
-def image_with_title(img, title_text, info_text):
-    plt.axis('off')
-    title = plt.text(0,-7,
-                    title_text, 
-                    fontsize=26)
-    title.set_bbox(dict(facecolor='white', alpha=1.0, edgecolor='white'))
-    info = plt.text(0,64*6+22,
-                    info_text, 
-                    fontsize=14)
-    info.set_bbox(dict(facecolor='white', alpha=1.0, edgecolor='white'))
-    img_n = plt.imshow(np.transpose(img,(1,2,0)), animated=True)
-    return [img_n, title]
-
 dataloader = data.makeCatsDataset(path=DATA_PATH, batch=16, isize=64)
 print(f"DATA lenght {len(dataloader)}")
 img_list = []
-for i_batch, im in enumerate(dataloader):
+for i_batch, (im, _) in enumerate(dataloader):
     im = noisy(im)
     im = (im+1.0)/2.0
     
     # imshow(torchvision.utils.make_grid(im, nrow=4), name=str(i_batch))
-    img_list.append(torchvision.utils.make_grid(im, nrow=4))
+    img_n = torchvision.utils.make_grid(im, nrow=4).numpy()
+    img_list.append(img_n)
     if i_batch == 100:
         break
-
+print(img_n.shape, img_n.dtype, np.min(img_n), np.max(img_n))
 fig = plt.figure(figsize=(12,12))
 # fig.subplots_adjust(left=0.0, bottom=0.0, right=1.0, top=1.0)
 ims = [
@@ -62,19 +50,19 @@ ani = animation.ArtistAnimation(fig, ims, interval=1500, repeat_delay=1000, blit
 
 Writer = animation.writers['ffmpeg']
 writer = Writer(fps=15, metadata=dict(artist='Me'), bitrate=5000, codec='mpeg4')
-# ani.save('test.mp4', writer=writer)
+ani.save('test.mp4', writer=writer)
 
 
 LATENT = 100
 print("== GAN testing")
-gen = Progressive_Generator(LATENT, device="cpu", device_ids=[1])
+gen = Progressive_Generator(LATENT)
 gen.add_block()
 gen.end_transition()
 gen.add_block()
 gen.end_transition()
 gen.add_block()
 
-dis = Progressive_Discriminator(device="cpu", device_ids=[1])
+dis = Progressive_Discriminator()
 dis.add_block()
 dis.end_transition()
 dis.add_block()

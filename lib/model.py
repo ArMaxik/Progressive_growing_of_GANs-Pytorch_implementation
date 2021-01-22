@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
 from lib.data import makeCatsDataset
-from lib.networks import Progressive_Discriminator, Progressive_Generator, weights_init
+from lib.networks import Progressive_Discriminator, Progressive_Generator
 
 from lib.misc import noisy, image_with_title
 
@@ -83,9 +83,14 @@ class Progressive_GAN(nn.Module):
         self.save_progress_image()
 
     def make_stats(self):
-        # with torch.no_grad():
-            # fake = self.gen(self.fixed_noise).detach().cpu()
-        # self.img_list.append(vutils.make_grid(fake, padding=2, normalize=True, nrow=6))
+        with torch.no_grad():
+            fake = self.gen(self.fixed_noise, self.alpha).detach().cpu()
+        vutils.save_image(
+            fake, self.save_folder + f"/progress/img_{len(self.G_losses)}.png",
+            padding=0, normalize=True, nrow=6
+        )
+        # img = vutils.make_grid(fake, padding=0, normalize=True, nrow=6)
+        # cv2.imwrite(img, self.save_folder + f"/progress/img_{len(self.G_losses)}.png")
 
         self.G_losses.append(self.g_loss.item())
         self.D_losses.append(self.d_loss.item())

@@ -17,14 +17,15 @@ def makeCatsDataset(batch=16, isize=64, path=DATA_DIR):
     cats_dataset = ImageFolder(
         root = path,
         transform = transforms.Compose([
-            transforms.Pad(isize//4, padding_mode='reflect'),
-            transforms.RandomAffine(
-                degrees = 10
-            ),
             transforms.Resize((isize,isize)),
             transforms.RandomHorizontalFlip(),
+            # transforms.Pad(isize//2, padding_mode='reflect'),
+            # transforms.RandomAffine(
+            #     degrees = 30
+            # ),
+            # transforms.CenterCrop(isize),
             transforms.ToTensor(),
             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ]))
-    dataloader = DataLoader(cats_dataset, batch_size=batch, shuffle=True, num_workers=8)
+    dataloader = DataLoader(cats_dataset, batch_size=batch, shuffle=True, num_workers=8, persistent_workers=True)
     return dataloader
