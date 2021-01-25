@@ -3,6 +3,7 @@ import numpy as np
 
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
+import matplotlib
 import cv2
 
 def noisy(image, device='cpu:0'):
@@ -32,7 +33,10 @@ def make_video(opt):
     i = 0
     imgs = []
     size = (6*opt.isize, 6*opt.isize)
-    fig = plt.figure(figsize=(12,12))
+    fig = plt.figure(figsize=(10,10))
+    ax = plt.axes([0,0,1,1], frameon=False)
+    ax.get_xaxis().set_visible(False)
+    ax.get_yaxis().set_visible(False)
 
     while True:
         img = cv2.imread(f"./out/{opt.exp_name}/progress/img_{i}.png")
@@ -45,8 +49,8 @@ def make_video(opt):
 
         i += 1
 
-    ani = animation.ArtistAnimation(fig, imgs, interval=1500, repeat_delay=1000, blit=True)
+    ani = animation.ArtistAnimation(fig, imgs, interval=600, repeat_delay=600, blit=True)
 
     Writer = animation.writers['ffmpeg']
-    writer = Writer(fps=15, metadata=dict(artist='Eliseev Vyacheslav'), bitrate=2500, codec='mpeg4')
-    ani.save(f"./out/{opt.exp_name}" +'_hist.mp4', writer=writer)
+    writer = Writer(fps=15, metadata=dict(artist='Eliseev Vyacheslav'), bitrate=7500, codec='mpeg4')
+    ani.save(f"./out/{opt.exp_name}/{opt.exp_name}" +'_hist.mp4', writer=writer)
