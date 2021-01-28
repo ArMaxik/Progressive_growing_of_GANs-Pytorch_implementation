@@ -25,44 +25,53 @@ class MinibatchStd(nn.Module):
 class EqualConv2d(nn.Conv2d):
     def __init__(self, *args, **kwargs):
         super(EqualConv2d, self).__init__(*args, **kwargs)
-        self.c = (2 / (self.kernel_size[0] * self.kernel_size[1])) ** 0.5
+        self.c = (2 / self.weight.data[0].numel()) ** 0.5
+        # nn.init.xavier_normal_(self.weight.data)
         nn.init.normal_(self.weight.data, 0.0, 1.0)
         nn.init.constant_(self.bias.data, 0)
 
     def forward(self, x):
-        weight_n = self.weight.data / self.c
+        x = super().forward(x) * self.c
+        return x
+        # weight_n = self.weight.data / self.c
 
-        return super()._conv_forward(x, weight_n)
+        # return super()._conv_forward(x, weight_n)
 
 class EqualConvTranspose2d(nn.ConvTranspose2d):
     def __init__(self, *args, **kwargs):
         super(EqualConvTranspose2d, self).__init__(*args, **kwargs)
-        self.c = (2 / (self.kernel_size[0] * self.kernel_size[1])) ** 0.5
-        nn.init.normal_(self.weight.data, 0.0, 1.0)
-        nn.init.constant_(self.bias.data, 0)
-
-    def forward(self, x, output_size = None):
-        if self.padding_mode != 'zeros':
-            raise ValueError('Only `zeros` padding mode is supported for ConvTranspose2d')
-
-        output_padding = self._output_padding(
-            x, output_size, self.stride, self.padding, self.kernel_size, self.dilation)
-
-        weight_n = self.weight.data / self.c
-        return F.conv_transpose2d(
-            x, weight_n, self.bias, self.stride, self.padding,
-            output_padding, self.groups, self.dilation)
-
-class EqualLinear(nn.Linear):
-    def __init__(self, *args, **kwargs):
-        super(EqualLinear, self).__init__(*args, **kwargs)
-        self.c = (2 / self.in_features) ** 0.5
+        self.c = (2 / self.weight.data[0].numel()) ** 0.5
+        # nn.init.xavier_normal_(self.weight.data)
         nn.init.normal_(self.weight.data, 0.0, 1.0)
         nn.init.constant_(self.bias.data, 0)
 
     def forward(self, x):
-        weight_n = self.weight.data / self.c
-        return F.linear(x, weight_n, self.bias)
+        x = super().forward(x) * self.c
+        return x
+    #     if self.padding_mode != 'zeros':
+    #         raise ValueError('Only `zeros` padding mode is supported for ConvTranspose2d')
+
+    #     output_padding = self._output_padding(
+    #         x, output_size, self.stride, self.padding, self.kernel_size, self.dilation)
+
+    #     weight_n = self.weight.data / self.c
+    #     return F.conv_transpose2d(
+    #         x, weight_n, self.bias, self.stride, self.padding,
+    #         output_padding, self.groups, self.dilation)
+
+class EqualLinear(nn.Linear):
+    def __init__(self, *args, **kwargs):
+        super(EqualLinear, self).__init__(*args, **kwargs)
+        self.c = (2 / self.weight.data[0].numel()) ** 0.5
+        # nn.init.xavier_normal_(self.weight.data)
+        nn.init.normal_(self.weight.data, 0.0, 1.0)
+        nn.init.constant_(self.bias.data, 0)
+
+    def forward(self, x):
+        x = super().forward(x) * self.c
+        return x
+    #     weight_n = self.weight.data / self.c
+    #     return F.linear(x, weight_n, self.bias)
 
 
 class Progressive_Generator(nn.Module):

@@ -45,7 +45,7 @@ def make_video(opt):
         img = cv2.resize(img, size, interpolation=cv2.INTER_NEAREST)
         plt.axis('off')
 
-        imgs.append([plt.imshow(img, animated=True)])
+        imgs.append([plt.imshow(img[:,:,::-1], animated=True)])
 
         i += 1
 

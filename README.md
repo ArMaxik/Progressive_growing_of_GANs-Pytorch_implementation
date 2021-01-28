@@ -2,7 +2,7 @@
 
 This is PyTorch implementation of ProgressiveGAN described in paper ["Progressive Growing of GANs for Improved Quality, Stability, and Variation"](https://arxiv.org/abs/1710.10196).
 
-Work is in progress. Weight normalization still don't work well.
+Work is in progress. Equivalent lr layers still don't work well.
 
 # Usage
 
@@ -48,4 +48,4 @@ There is no ability to explicitly use trained network.
 * CUDNN 7.6.3
 
 # Acknowledgement
-* https://github.com/nashory/pggan-pytorch
+[1] https://github.com/nashory/pggan-pytorch
