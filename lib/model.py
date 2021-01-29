@@ -11,7 +11,7 @@ import matplotlib.animation as animation
 from lib.data import makeCatsDataset
 from lib.networks import Progressive_Discriminator, Progressive_Generator
 
-from lib.misc import noisy, image_with_title
+from lib.misc import noisy, image_with_title, prep_dirs, save_opt
 
 import math
 import numpy as np
@@ -26,6 +26,7 @@ class Progressive_GAN(nn.Module):
         self.latent = opt.latent
         self.isize = opt.isize
         self.cur_isize = 4
+        self.size_feature_start_dec = opt.size_feature_start_dec
         self.device = opt.device
         self.device_ids = opt.device_ids
         self.data_path = opt.data_path
@@ -33,16 +34,13 @@ class Progressive_GAN(nn.Module):
         self.epochs = opt.epochs
         self.lr_d = opt.lr_d
         self.lr_g = opt.lr_g
-        self.lr_decay_epoch = opt.lr_decay_epoch
-        self.lr_decay_factor = opt.lr_decay_factor
         self.g_it = opt.g_it
         self.d_it = opt.d_it
         self.b1 = opt.b1
         self.b2 = opt.b2
         self.noise = opt.noise
         self.lambda_coff = opt.lambda_coff
-        self.eps_drift = 0.001
-        
+        self.eps_drift = opt.eps_drift
 
         self.dataloader = makeCatsDataset(path=self.data_path, batch=self.batch, isize=self.cur_isize)
         self.gen = Progressive_Generator(self.latent).to(self.device)
@@ -52,6 +50,9 @@ class Progressive_GAN(nn.Module):
             self.device_ids = [0]
         self.gen = nn.DataParallel(self.gen, device_ids=self.device_ids)
         self.dis = nn.DataParallel(self.dis, device_ids=self.device_ids)
+
+        prep_dirs(opt)
+        save_opt(opt)
 
     def setup_train(self):
         self.fixed_noise = torch.randn(36, self.latent, device=self.device)
@@ -116,8 +117,12 @@ class Progressive_GAN(nn.Module):
                 self.save_progress_image()
             
             self.transition = True
-            self.gen.module.add_block()
-            self.dis.module.add_block()
+            if self.cur_isize < self.size_feature_start_dec // 2:
+                div = 1
+            else:
+                div = 2
+            self.gen.module.add_block(div=div)
+            self.dis.module.add_block(div=div)
 
             self.gen.module.to(self.device)
             self.dis.module.to(self.device)

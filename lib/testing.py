@@ -53,9 +53,15 @@ writer = Writer(fps=15, metadata=dict(artist='Me'), bitrate=5000, codec='mpeg4')
 ani.save('test.mp4', writer=writer)
 
 
-LATENT = 100
+LATENT = 512
 print("== GAN testing")
 gen = Progressive_Generator(LATENT)
+gen.add_block(div=1)
+gen.end_transition()
+gen.add_block(div=1)
+gen.end_transition()
+gen.add_block(div=1)
+gen.end_transition()
 gen.add_block()
 gen.end_transition()
 gen.add_block()
@@ -63,6 +69,12 @@ gen.end_transition()
 gen.add_block()
 
 dis = Progressive_Discriminator()
+dis.add_block(div=1)
+dis.end_transition()
+dis.add_block(div=1)
+dis.end_transition()
+dis.add_block(div=1)
+dis.end_transition()
 dis.add_block()
 dis.end_transition()
 dis.add_block()
@@ -93,5 +105,5 @@ data = gen(noise).cpu()
 torchvision.utils.save_image(data, "test.png", nrow=4, normalize=True)
 
 summary(gen, (3, LATENT), device="cpu")
-summary(dis, (3, 32, 32), device="cpu")
+summary(dis, (3, 256, 256), device="cpu")
 

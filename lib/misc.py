@@ -5,6 +5,7 @@ import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import matplotlib
 import cv2
+import os
 
 def noisy(image, device='cpu:0'):
     b = -0.11
@@ -52,5 +53,16 @@ def make_video(opt):
     ani = animation.ArtistAnimation(fig, imgs, interval=600, repeat_delay=600, blit=True)
 
     Writer = animation.writers['ffmpeg']
-    writer = Writer(fps=15, metadata=dict(artist='Eliseev Vyacheslav'), bitrate=7500, codec='mpeg4')
+    writer = Writer(fps=15, bitrate=7500, codec='mpeg4')
     ani.save(f"./out/{opt.exp_name}/{opt.exp_name}" +'_hist.mp4', writer=writer)
+
+def prep_dirs(opt):
+    if not os.path.isdir(f"./out/{opt.exp_name}"):
+        os.makedirs(f"./out/{opt.exp_name}")
+    if not os.path.isdir(f"./out/{opt.exp_name}/progress"):
+        os.makedirs(f"./out/{opt.exp_name}/progress")
+
+def save_opt(opt):
+    with open(f"./out/{opt.exp_name}/opt.txt", 'w') as f:
+        for (k, v) in opt.__dict__.items():
+            f.write("{:24s}{}\n".format(k, v))

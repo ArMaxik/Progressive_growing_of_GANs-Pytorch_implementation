@@ -30,7 +30,7 @@ To begin trainig use:
 python train.py
 ```
 
-## Runing
+## Runing (WIP)
 
 There is no ability to explicitly use trained network.
 
@@ -48,4 +48,5 @@ There is no ability to explicitly use trained network.
 * CUDNN 7.6.3
 
 # Acknowledgement
-[1] https://github.com/nashory/pggan-pytorch
+[1] https://arxiv.org/abs/1710.10196
+[2] https://github.com/nashory/pggan-pytorch

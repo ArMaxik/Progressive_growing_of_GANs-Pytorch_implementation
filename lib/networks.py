@@ -93,22 +93,22 @@ class Progressive_Generator(nn.Module):
 
         # self.block_size = 4
 
-    def add_block(self):
+    def add_block(self, div = 2):
         block = nn.ModuleList([
             nn.Upsample(scale_factor=2.0),
-            EqualConv2d(self.nc, self.nc // 2, kernel_size=3, stride=1, padding=1, bias=True),
+            EqualConv2d(self.nc, self.nc // div, kernel_size=3, stride=1, padding=1, bias=True),
             PixelNorm(),
             nn.LeakyReLU(0.2),
-            EqualConv2d(self.nc // 2, self.nc // 2, (3, 3), stride=1, padding=1, bias=True),
+            EqualConv2d(self.nc // div, self.nc // div, (3, 3), stride=1, padding=1, bias=True),
             PixelNorm(),
             nn.LeakyReLU(0.2),
         ])
         self.block_size = len(block)
 
-        self.toRGB_new = EqualConv2d(self.nc // 2, 3, (1, 1), bias=True)
+        self.toRGB_new = EqualConv2d(self.nc // div, 3, (1, 1), bias=True)
 
         self.layers.extend(block)
-        self.nc //= 2
+        self.nc //= div
             
 
     def forward(self, x, alpha = -1):
@@ -166,19 +166,19 @@ class Progressive_Discriminator(nn.Module):
 
         self.linear = EqualLinear(in_features = self.nc, out_features = 1)
 
-    def add_block(self):
+    def add_block(self, div = 2):
         block = nn.ModuleList([
-            EqualConv2d(self.nc//2, self.nc//2, kernel_size=3, stride=1, padding=1, bias=True),
+            EqualConv2d(self.nc//div, self.nc//div, kernel_size=3, stride=1, padding=1, bias=True),
             nn.LeakyReLU(0.2),
-            EqualConv2d(self.nc//2, self.nc, kernel_size=3, stride=1, padding=1, bias=True),
+            EqualConv2d(self.nc//div, self.nc, kernel_size=3, stride=1, padding=1, bias=True),
             nn.LeakyReLU(0.2),
             nn.AvgPool2d(2),
         ])
         self.block_size = len(block)
-        self.fromRGB_new = EqualConv2d(3, self.nc // 2, (1, 1), bias=True)
+        self.fromRGB_new = EqualConv2d(3, self.nc // div, (1, 1), bias=True)
         
         self.layers = block.extend(self.layers)
-        self.nc //= 2
+        self.nc //= div
 
 
     def forward(self, x, alpha = -1):
