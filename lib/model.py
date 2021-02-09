@@ -18,6 +18,42 @@ import numpy as np
 from tqdm import tqdm
 import os
 
+class NeuralGenerator():
+    def __init__(self, opt):
+        self.latent = opt["latent"]
+        self.isize = opt["isize"]
+        self.cur_isize = 4
+        self.device = opt["device"]
+        self.size_feature_start_dec = opt["size_feature_start_dec"]
+        self.weights_path = opt["weights"]
+
+        self.gen = Progressive_Generator(self.latent)
+        print("Setting up generator")
+
+        while self.cur_isize < self.isize :
+            if self.cur_isize < self.size_feature_start_dec // 2:
+                div = 1
+            else:
+                div = 2
+            self.gen.add_block(div=div)
+            self.gen.end_transition()
+            self.cur_isize *= 2
+        
+        print("Loading weights")
+        weights = torch.load(self.weights_path, map_location=self.device)
+        old_keys = list(weights.keys())
+        for key in old_keys:
+            new_key = key.replace('module.', '')
+            weights[new_key] = weights[key]
+            weights.pop(key)
+        self.gen.load_state_dict(weights)
+        self.gen.to(self.device)
+
+    def generate(self):
+        latent = torch.randn(1, self.latent, device=self.device)
+        img = self.gen(latent).detach().cpu()
+        return img[0]
+
 class Progressive_GAN(nn.Module):
     def __init__(self, opt):
         super(Progressive_GAN, self).__init__()
@@ -121,6 +157,11 @@ class Progressive_GAN(nn.Module):
                 div = 1
             else:
                 div = 2
+            if self.cur_isize == 64:
+                self.batch = 14
+            if self.cur_isize == 128:
+                self.batch = 8
+
             self.gen.module.add_block(div=div)
             self.dis.module.add_block(div=div)
 
@@ -148,7 +189,8 @@ class Progressive_GAN(nn.Module):
             self.dis.module.end_transition()
 
             # self.epochs = int(self.epochs*1.15)
-            self.make_chart()
+            self.save_weights()
+
         print("train {}x{}".format(self.cur_isize, self.cur_isize))
         self.pbar.reset(total=self.epochs*len(self.dataloader))  # initialise with new `total`
         self.transition = False
@@ -243,8 +285,23 @@ class Progressive_GAN(nn.Module):
         plt.savefig(self.save_folder + "losses.png")
         plt.close()
 
+    def remove_module_from_state_dict(state_dict):
+        old_keys = list(state_dict.keys())
+        for key in old_keys:
+            new_key = key.replace('module.', '')
+            state_dict[new_key] = state_dict[key]
+            state_dict.pop(key)
+
     def save_weights(self):
         g_w = self.gen.state_dict()
         d_w = self.dis.state_dict()
+        remove_module_from_state_dict(g_w)
+        remove_module_from_state_dict(d_w)
+
+        old_keys = list(weights.keys())
+        for key in old_keys:
+            new_key = key.replace('module.', '')
+            weights[new_key] = weights[key]
+            weights.pop(key)
         torch.save(g_w, self.save_folder + 'c_gen.pth')
         torch.save(d_w, self.save_folder + 'c_dis.pth')

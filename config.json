@@ -1,0 +1,8 @@
+{
+    "exp_name": "Progressive_GAN_07",
+    "batch": 32,
+    "latent": 512,
+    "isize": 256,
+    "size_feature_start_dec": 64,
+    "weights": "out/Progressive_GAN_08/c_gen.pth"
+}

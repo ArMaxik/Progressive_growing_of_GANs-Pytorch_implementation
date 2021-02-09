@@ -8,12 +8,12 @@ import os
 
 class options:
     def __init__(self):
-        self.exp_name = "Progressive_GAN_07"
-        self.batch = 64
+        self.exp_name = "Progressive_GAN_09"
+        self.batch = 32
         self.latent = 512
-        self.isize = 256
+        self.isize = 512
         self.size_feature_start_dec = 64
-        self.device_ids = [2, 3]
+        self.device_ids = [1, 2]
         self.device = torch.device(f"cuda:{self.device_ids[0]}" if (torch.cuda.is_available()) else "cpu")
         # self.data_path = "/home/v-eliseev/Datasets/cats/"
         # self.data_path = "/mnt/p/datasets/cats/"
@@ -21,8 +21,8 @@ class options:
         self.data_path = "/raid/veliseev/datasets/cats/faces_1024_jpg/"
 
         self.epochs = 60
-        self.lr_d = 0.001
-        self.lr_g = 0.001
+        self.lr_d = 0.0004
+        self.lr_g = 0.0004
         self.eps_drift = 0.001
         self.g_it = 1
         self.d_it = 1
