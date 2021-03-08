@@ -8,31 +8,41 @@ Work is in progress. Equivalent lr layers still don't work well.
 
 ## Config
 
-Use `options` class for set up model before training.
+Use `config.json` file for set up model before training.
 
 * exp_name - model name
 * batch - batch size
 * latent - size of latent space vector
 * isize - final generating image size
-* device_ids - GPU ids. Use list for initialize
-* device - use GPU or CPU for training
-* data_path - path of dataset
 * epochs - number of epochs
 * lr_d - lerning rate of discriminator
 * lr_g - lerning rate of generator
 * lr_decay_epoch - []
+* weights - using in `generate.py` script
 
 ## Training
 
-To begin trainig use:
+To begin trainig use `train.py` script.
+* device_ids - GPU ids. Use list for initialize
+* device - use GPU or CPU for training
+* data_path - path of dataset
 
+Train on cpu:
 ```sh
-python train.py
+python train.py -c config.json -d cpu
 ```
 
-## Runing (WIP)
+Train on 2 gpus:
+```sh
+python train.py -c config.json -d cuda --dev_ids 0 1
+```
 
-There is no ability to explicitly use trained network.
+## Runing
+
+To use generator run `generate.py` script:
+```sh
+python generate.py -o out/test/ -c config.json -n 20
+```
 
 # Example of generating cats
 

@@ -33,14 +33,14 @@ def image_with_title(img, title_text, info_text):
 def make_video(opt):
     i = 0
     imgs = []
-    size = (6*opt.isize, 6*opt.isize)
+    size = (6*opt["isize"], 6*opt["isize"])
     fig = plt.figure(figsize=(10,10))
     ax = plt.axes([0,0,1,1], frameon=False)
     ax.get_xaxis().set_visible(False)
     ax.get_yaxis().set_visible(False)
 
     while True:
-        img = cv2.imread(f"./out/{opt.exp_name}/progress/img_{i}.png")
+        img = cv2.imread(f"./out/{opt['exp_name']}/progress/img_{i}.png")
         if img is None:
             break
         img = cv2.resize(img, size, interpolation=cv2.INTER_NEAREST)
@@ -54,15 +54,22 @@ def make_video(opt):
 
     Writer = animation.writers['ffmpeg']
     writer = Writer(fps=15, bitrate=7500, codec='mpeg4')
-    ani.save(f"./out/{opt.exp_name}/{opt.exp_name}" +'_hist.mp4', writer=writer)
+    ani.save(f"./out/{opt['exp_name']}/{opt['exp_name']}" +'_hist.mp4', writer=writer)
 
 def prep_dirs(opt):
-    if not os.path.isdir(f"./out/{opt.exp_name}"):
-        os.makedirs(f"./out/{opt.exp_name}")
-    if not os.path.isdir(f"./out/{opt.exp_name}/progress"):
-        os.makedirs(f"./out/{opt.exp_name}/progress")
+    if not os.path.isdir(f"./out/{opt['exp_name']}"):
+        os.makedirs(f"./out/{opt['exp_name']}")
+    if not os.path.isdir(f"./out/{opt['exp_name']}/progress"):
+        os.makedirs(f"./out/{opt['exp_name']}/progress")
 
 def save_opt(opt):
-    with open(f"./out/{opt.exp_name}/opt.txt", 'w') as f:
-        for (k, v) in opt.__dict__.items():
+    with open(f"./out/{opt['exp_name']}/opt.txt", 'w') as f:
+        for (k, v) in opt.items():
             f.write("{:24s}{}\n".format(k, v))
+
+def remove_module_from_state_dict(state_dict):
+    old_keys = list(state_dict.keys())
+    for key in old_keys:
+        new_key = key.replace('module.', '')
+        state_dict[new_key] = state_dict[key]
+        state_dict.pop(key)

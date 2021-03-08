@@ -1,8 +1,19 @@
 {
-    "exp_name": "Progressive_GAN_07",
+    "exp_name": "Progressive_GAN_11",
     "batch": 32,
     "latent": 512,
     "isize": 256,
     "size_feature_start_dec": 64,
-    "weights": "out/Progressive_GAN_08/c_gen.pth"
+    "weights": "out/Progressive_GAN_08/c_gen.pth",
+
+    "epochs" : 45,
+    "lr_d" : 0.0003,
+    "lr_g" : 0.0003,
+    "eps_drift" : 0.001,
+    "g_it" : 1,
+    "d_it" : 1,
+    "b1" : 0.0,
+    "b2" : 0.99,
+    "noise" : false,
+    "lambda_coff" : 10.0
 }
