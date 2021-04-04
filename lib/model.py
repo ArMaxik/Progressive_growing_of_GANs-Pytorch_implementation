@@ -23,7 +23,7 @@ class NeuralGenerator():
     def __init__(self, opt):
         self.latent = opt["latent"]
         self.isize = opt["isize"]
-        self.cpi2 = opt["cpi"]**2
+        self.batch = opt["batch"]
         self.cur_isize = 4
         self.device = opt["device"]
         self.size_feature_start_dec = opt["size_feature_start_dec"]
@@ -48,7 +48,7 @@ class NeuralGenerator():
         self.gen.to(self.device)
 
     def generate(self):
-        latent = torch.randn(self.cpi2, self.latent, device=self.device)
+        latent = torch.randn(self.batch, self.latent, device=self.device)
         img = self.gen(latent).detach().cpu()
         return img
 
