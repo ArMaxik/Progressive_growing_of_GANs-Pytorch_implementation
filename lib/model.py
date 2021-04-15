@@ -17,7 +17,7 @@ import math
 import numpy as np
 from tqdm import tqdm
 import os
-
+import time
 
 class NeuralGenerator():
     def __init__(self, opt):
@@ -113,6 +113,7 @@ class Progressive_GAN(nn.Module):
                 self.train_generator()
 
             self.pbar.update()
+
         self.make_stats()
         self.make_chart()
         self.save_progress_image()
@@ -124,6 +125,7 @@ class Progressive_GAN(nn.Module):
             fake, self.save_folder + f"/progress/img_{len(self.G_losses)}.png",
             padding=0, normalize=True, nrow=6
         )
+        tqdm.write(f"Size: {self.cur_isize}x{self.cur_isize} Batch: {self.batch} Transition: {self.transition} Min: {fake.min()} Max: {fake.max()}")
 
         self.G_losses.append(self.g_loss.item())
         self.D_losses.append(self.d_loss.item())
@@ -142,7 +144,6 @@ class Progressive_GAN(nn.Module):
             self.op_gen = torch.optim.Adam(self.gen.parameters(), lr=self.lr_g, betas=(self.b1, self.b2))
             self.op_dis = torch.optim.Adam(self.dis.parameters(), lr=self.lr_d, betas=(self.b1, self.b2)) 
 
-            print(f"train {self.cur_isize}x{self.cur_isize}")
             self.transition = False
             self.alpha = -1  # No transition
             self.pbar.reset(total=self.epochs*len(self.dataloader))  # initialise with new `total`
@@ -156,16 +157,6 @@ class Progressive_GAN(nn.Module):
                 div = 1
             else:
                 div = 2
-            if self.cur_isize == 64:
-                self.batch = 20
-            if self.cur_isize == 128:
-                self.batch = 10
-                self.lr_d = 0.0001
-                self.lr_g = 0.0001
-            if self.cur_isize == 256:
-                self.batch = 5
-                self.lr_d = 0.00005
-                self.lr_g = 0.00005
 
             self.gen.module.add_block(div=div)
             self.dis.module.add_block(div=div)
@@ -177,13 +168,21 @@ class Progressive_GAN(nn.Module):
             self.op_dis = torch.optim.Adam(self.dis.parameters(), lr=self.lr_d, betas=(self.b1, self.b2)) 
 
             # self.epochs = int(self.epochs*1.15)
-            alpha_inc = 1.0 / (self.epochs-1)
+            alpha_inc = 1.0 / (self.epochs + 1)
 
             self.cur_isize *= 2
+
+            if self.cur_isize == 256:
+                self.batch = 14 * len(self.device_ids)
+            if self.cur_isize == 512:
+                self.batch = 6 * len(self.device_ids)
+                self.data_path = "/raid/veliseev/datasets/cats/cats_faces_hd/512"
+            if self.cur_isize == 1024:
+                self.batch = 3 * len(self.device_ids)
+
             self.dataloader = makeCatsDataset(path=self.data_path, batch=self.batch, isize=self.cur_isize)
             self.alpha = alpha_inc
 
-            print(f"train transition {self.cur_isize}x{self.cur_isize}")
             self.pbar.reset(total=self.epochs*len(self.dataloader))  # initialise with new `total`
             for epoch in range(self.epochs):
                 self.train_one_epoch()
@@ -196,7 +195,6 @@ class Progressive_GAN(nn.Module):
             # self.epochs = int(self.epochs*1.15)
             self.save_weights()
 
-        print("train {}x{}".format(self.cur_isize, self.cur_isize))
         self.pbar.reset(total=self.epochs*len(self.dataloader))  # initialise with new `total`
         self.transition = False
         self.alpha = -1  # No transition
