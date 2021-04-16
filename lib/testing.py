@@ -31,7 +31,7 @@ print(f"DATA lenght {len(dataloader)}")
 img_list = []
 for i_batch, (im, _) in enumerate(dataloader):
     im = noisy(im)
-    im = (im+1.0)/2.0
+    im = (im + 1.0) / 2.0
     
     # imshow(torchvision.utils.make_grid(im, nrow=4), name=str(i_batch))
     vutils.save_image(

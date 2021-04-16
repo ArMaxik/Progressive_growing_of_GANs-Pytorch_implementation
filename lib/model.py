@@ -18,7 +18,9 @@ import numpy as np
 from tqdm import tqdm
 import os
 import time
+from datetime import timedelta
 
+from torchsummary import summary
 class NeuralGenerator():
     def __init__(self, opt):
         self.latent = opt["latent"]
@@ -27,7 +29,7 @@ class NeuralGenerator():
         self.cur_isize = 4
         self.device = opt["device"]
         self.size_feature_start_dec = opt["size_feature_start_dec"]
-        self.weights_path = opt["weights"]
+        self.gweights = opt["gweights"]
 
         self.gen = Progressive_Generator(self.latent)
         print("Setting up generator")
@@ -42,7 +44,7 @@ class NeuralGenerator():
             self.cur_isize *= 2
         
         print("Loading weights")
-        weights = torch.load(self.weights_path, map_location=self.device)
+        weights = torch.load(self.gweights, map_location=self.device)
         remove_module_from_state_dict(weights)
         self.gen.load_state_dict(weights)
         self.gen.to(self.device)
@@ -76,14 +78,38 @@ class Progressive_GAN(nn.Module):
         self.lambda_coff = opt["lambda_coff"]
         self.eps_drift = opt["eps_drift"]
 
-        self.dataloader = makeCatsDataset(path=self.data_path, batch=self.batch, isize=self.cur_isize)
-        self.gen = Progressive_Generator(self.latent).to(self.device)
-        self.dis = Progressive_Discriminator().to(self.device)
+        self.gen = Progressive_Generator(self.latent)
+        self.dis = Progressive_Discriminator()
+
+        load_weights = self.cur_isize < opt["start_size"]
+        while self.cur_isize < opt["start_size"]:
+            if self.cur_isize < self.size_feature_start_dec // 2:
+                div = 1
+            else:
+                div = 2
+            self.gen.add_block(div=div)
+            self.dis.add_block(div=div)
+            self.gen.end_transition()
+            self.dis.end_transition()
+            self.cur_isize *= 2
+
+        if load_weights:
+            print("Loading generator weights")
+            gweights = torch.load(opt["gweights"], map_location=self.device)
+            self.gen.load_state_dict(gweights)
+            self.gen.to(self.device)
+
+            print("Loading discriminator weights")  
+            dweights = torch.load(opt["dweights"], map_location=self.device)
+            self.dis.load_state_dict(dweights)
+            self.dis.to(self.device)
 
         if len(self.device_ids) == 0 :
             self.device_ids = [0]
         self.gen = nn.DataParallel(self.gen, device_ids=self.device_ids)
         self.dis = nn.DataParallel(self.dis, device_ids=self.device_ids)
+
+        self.dataloader = makeCatsDataset(path=self.data_path, batch=self.batch, isize=self.cur_isize)
 
         prep_dirs(opt)
         save_opt(opt)
@@ -125,13 +151,15 @@ class Progressive_GAN(nn.Module):
             fake, self.save_folder + f"/progress/img_{len(self.G_losses)}.png",
             padding=0, normalize=True, nrow=6
         )
-        tqdm.write(f"Size: {self.cur_isize}x{self.cur_isize} Batch: {self.batch} Transition: {self.transition} Min: {fake.min()} Max: {fake.max()}")
+        end_time = time.time()
+        tqdm.write(f"Size: {self.cur_isize}x{self.cur_isize} Batch: {self.batch} Transition: {self.transition} Min: {fake.min()} Max: {fake.max()} Total time: {timedelta(seconds=end_time - self.start_time)}")
 
         self.G_losses.append(self.g_loss.item())
         self.D_losses.append(self.d_loss.item())
 
     def train(self):
         self.save_folder = os.path.join('./out', self.exp_name + '/')
+        self.start_time = time.time()
 
         print("Strated {}\nepochs: {}\ndevice: {}".format(self.exp_name, self.epochs, self.device))
         
@@ -270,7 +298,7 @@ class Progressive_GAN(nn.Module):
         with torch.no_grad():
             fake = self.gen(self.fixed_noise_64, self.alpha).detach().cpu()
 
-        name = "final_{}x{}".format(self.cur_isize, self.cur_isize)
+        name = f"final_{self.cur_isize}x{self.cur_isize}"
         if self.transition:
             name += "_transition"
         name += ".png"
@@ -294,5 +322,8 @@ class Progressive_GAN(nn.Module):
         remove_module_from_state_dict(g_w)
         remove_module_from_state_dict(d_w)
 
-        torch.save(g_w, self.save_folder + 'c_gen.pth')
-        torch.save(d_w, self.save_folder + 'c_dis.pth')
+        postfix = f"{self.cur_isize}"
+        if self.transition:
+            postfix += "_tr"
+        torch.save(g_w, self.save_folder + f'c_gen_{postfix}.pth')
+        torch.save(d_w, self.save_folder + f'c_dis_{postfix}.pth')
