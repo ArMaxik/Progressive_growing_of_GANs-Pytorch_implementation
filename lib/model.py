@@ -45,7 +45,6 @@ class NeuralGenerator():
         
         print("Loading weights")
         weights = torch.load(self.gweights, map_location=self.device)
-        remove_module_from_state_dict(weights)
         self.gen.load_state_dict(weights)
         self.gen.to(self.device)
 
@@ -139,6 +138,9 @@ class Progressive_GAN(nn.Module):
                 self.train_generator()
 
             self.pbar.update()
+            if self.pbar.n % 10 == 0:
+                end_time = time.time()
+                tqdm.write(f"Size: {self.cur_isize}x{self.cur_isize} | Batch: {self.batch} | Transition: {self.transition} | G_loss: {self.g_loss.item()} D_loss: {self.d_loss.item()} | Total time: {timedelta(seconds=end_time - self.start_time)}")
 
         self.make_stats()
         self.make_chart()
@@ -152,7 +154,7 @@ class Progressive_GAN(nn.Module):
             padding=0, normalize=True, nrow=6
         )
         end_time = time.time()
-        tqdm.write(f"Size: {self.cur_isize}x{self.cur_isize} Batch: {self.batch} Transition: {self.transition} Min: {fake.min()} Max: {fake.max()} Total time: {timedelta(seconds=end_time - self.start_time)}")
+        tqdm.write(f"Size: {self.cur_isize}x{self.cur_isize} | Batch: {self.batch} | Transition: {self.transition} | Min: {fake.min()} Max: {fake.max()} | Total time: {timedelta(seconds=end_time - self.start_time)}")
 
         self.G_losses.append(self.g_loss.item())
         self.D_losses.append(self.d_loss.item())
@@ -175,9 +177,10 @@ class Progressive_GAN(nn.Module):
             self.transition = False
             self.alpha = -1  # No transition
             self.pbar.reset(total=self.epochs*len(self.dataloader))  # initialise with new `total`
-            for epoch in range(self.epochs):
-                self.train_one_epoch()
-                self.save_progress_image()
+            if self.cur_isize != 128:
+                for epoch in range(self.epochs):
+                    self.train_one_epoch()
+                    self.save_progress_image()
             
             self.save_weights()
             self.transition = True
@@ -204,7 +207,7 @@ class Progressive_GAN(nn.Module):
                 self.batch = 14 * len(self.device_ids)
             if self.cur_isize == 512:
                 self.batch = 6 * len(self.device_ids)
-                self.data_path = "/raid/veliseev/datasets/cats/cats_faces_hd/512"
+                # self.data_path = "/raid/veliseev/datasets/cats/cats_faces_hd/512"
             if self.cur_isize == 1024:
                 self.batch = 3 * len(self.device_ids)
 
@@ -273,6 +276,11 @@ class Progressive_GAN(nn.Module):
         self.d_loss = output_fake.mean() - output_real.mean() + self.gradien_penalty(imgs_real, imgs_fake)
         self.d_loss += self.eps_drift * torch.mean(output_real ** 2)
         self.d_loss.backward()
+
+        for name, param in self.dis.named_parameters():
+            i_inf = torch.isfinite(param.grad).all()
+            if not i_inf:
+                tqdm.write(f"{name} {i_inf}")
 
         self.D_G_z1 = output_fake.mean().item()
 

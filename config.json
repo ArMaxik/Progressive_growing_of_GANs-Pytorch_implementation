@@ -1,12 +1,12 @@
 {
-    "exp_name": "Progressive_GAN_12",
-    "batch": 64,
+    "exp_name": "Progressive_GAN_13",
+    "batch": 16,
     "latent": 512,
     "start_size": 128,
-    "isize": 512,
+    "isize": 256,
     "size_feature_start_dec": 64,
-    "gweights": "/raid/veliseev/dev/progressiveGAN/out/Progressive_GAN_11/c_gen.pth",
-    "dweights": "/raid/veliseev/dev/progressiveGAN/out/Progressive_GAN_11/c_dis.pth",
+    "gweights": "/raid/veliseev/dev/progressiveGAN/out/Progressive_GAN_13/c_gen_256.pth",
+    "dweights": "/raid/veliseev/dev/progressiveGAN/out/Progressive_GAN_13/c_dis_256.pth",
 
     "epochs" : 50,
     "lr_d" : 0.004,
